@@ -24,6 +24,8 @@ foreach ($item in $Files) {
         $platform = $test['supported_platforms']
         $dependencies = $test['dependencies']
         $isWindowsPlatform = $platform -contains "windows"
+        $isLinuxPlatform = $platform -contains "linux"
+        $isMacPlatform = $platform -contains "macos"
 
         function isPowershell {$input -eq "powershell"}
         function isBash {$input -match "b?a?sh"}
@@ -46,33 +48,25 @@ foreach ($item in $Files) {
         $technique = $ParsedYaml['attack_technique']
         $technique_name = $test['name']
 
-        if($(Compare-Command $name $command)){    
-            Add-Content -Path $FilePath  -Value "$technique , $technique_name, $False, $False"
-            Write-Host $technique  $technique_name
-        }
+        # if($(Compare-Command $name $command)){    
+        #     Add-Content -Path $FilePath  -Value "$technique , $technique_name, $False, $False"
+        #     Write-Host $technique  $technique_name
+        # }
         
-        :loop1 foreach ($dep in $dependencies){
-            if($(Compare-Command $dep_exec $dep['get_prereq_command'])){
-                Write-Host "*" $technique  $technique_name
-                Add-Content -Path $FilePath  -Value "$technique , $technique_name, $True, $False"
-            }
-            if($(Compare-Command $dep_exec $dep['prereq_command'])){
-                Write-Host "*" $technique  $technique_name
-                Add-Content -Path $FilePath  -Value "$technique , $technique_name, $False, $True"
-            }
-        }
-    
-
-        # if(($name | isPowershell) -and ($command | commandSearch) -and $isWindowsPlatform){
-        #     Write-Host $ParsedYaml['attack_technique'] $test['name']
-        # }else{
-        #     :loop1 foreach ($dep in $dependencies){
-        #         $dep_command = $dep['get_prereq_command'] + $dep['prereq_command']
-        #         if(($dep_exec | isPowershell) -and ($dep_command | commandSearch) -and $isWindowsPlatform){
-        #             Write-Host "$" $ParsedYaml['attack_technique'] $test['name']
-        #             break loop1
-        #         }
+        # :loop1 foreach ($dep in $dependencies){
+        #     if($(Compare-Command $dep_exec $dep['get_prereq_command'])){
+        #         Write-Host "*" $technique  $technique_name
+        #         Add-Content -Path $FilePath  -Value "$technique , $technique_name, $True, $False"
+        #     }
+        #     if($(Compare-Command $dep_exec $dep['prereq_command'])){
+        #         Write-Host "*" $technique  $technique_name
+        #         Add-Content -Path $FilePath  -Value "$technique , $technique_name, $False, $True"
         #     }
         # }
+    
+
+        if($isMacPlatform){
+            Add-Content -Path $FilePath  -Value "$technique , $technique_name, $False, $False"
+        }
     }
 }
