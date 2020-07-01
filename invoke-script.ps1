@@ -1,6 +1,12 @@
-$PathToInvokeAtomicFolder = "/Users/0x6c/AtomicRedTeam/invoke-atomicredteam/*.psd1"
-$errFile = "/tmp/art-err.txt"
-$outFile = "/tmp/art-out.txt"
+if($isWindows){
+    $PathToInvokeAtomicFolder = "C:/AtomicRedTeam/invoke-atomicredteam/*.psd1"
+    $errFile = "$env:Temp/art-err.txt"
+    $outFile = "$env:Temp/art-out.txt"
+}else{
+    $PathToInvokeAtomicFolder = "/Users/0x6c/AtomicRedTeam/invoke-atomicredteam/*.psd1"
+    $errFile = "/tmp/art-err.txt"
+    $outFile = "/tmp/art-out.txt"
+}
 
 Import-Module $PathToInvokeAtomicFolder
 
