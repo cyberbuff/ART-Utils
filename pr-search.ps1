@@ -1,11 +1,17 @@
 Import-Module powershell-yaml
 
-$Files = Get-ChildItem -Path "/Users/0x6c/AtomicRedTeam/atomics/*/*.yaml" 
+if($isLinux -or $isMacOS){
+    $Files = Get-ChildItem -Path "~/AtomicRedTeam/atomics/*/*.yaml"
+}else{
+    $Files = Get-ChildItem -Path "C:\AtomicRedTeam\atomics\*\*.yaml" 
+}
 
 $FilePath = "./test.csv"
+
 if (Test-Path $FilePath){
     Remove-Item $FilePath
 }
+
 Add-Content -Path $FilePath  -Value '"AtomicTest","AtomicName","GetPreReqs","CheckPreReqs"'
 
 foreach ($item in $Files) {
@@ -65,8 +71,8 @@ foreach ($item in $Files) {
         # }
     
 
-        if($isMacPlatform){
-            Add-Content -Path $FilePath  -Value "$technique , $technique_name, $False, $False"
+        if($isWindowsPlatform){
+            Add-Content -Path $FilePath -Value "$technique, $technique_name, $False, $False"
         }
     }
 }

@@ -1,14 +1,22 @@
-if($isWindows){
-    $PathToInvokeAtomicFolder = "C:/AtomicRedTeam/invoke-atomicredteam/*.psd1"
-    $errFile = "$env:Temp/art-err.txt"
-    $outFile = "$env:Temp/art-out.txt"
-}else{
-    $PathToInvokeAtomicFolder = "/Users/0x6c/AtomicRedTeam/invoke-atomicredteam/*.psd1"
+if($isLinux -or $isMacOS){
+    $PathToInvokeAtomicFolder = "~/AtomicRedTeam/invoke-atomicredteam/*.psd1"
     $errFile = "/tmp/art-err.txt"
     $outFile = "/tmp/art-out.txt"
+}else{
+    $PathToInvokeAtomicFolder = "C:\AtomicRedTeam\invoke-atomicredteam\Invoke-AtomicRedTeam.psd1"
+    $errFile = "$env:Temp/art-err.txt"
+    $outFile = "$env:Temp/art-out.txt"
+    $PSDefaultParameterValues = @{"Invoke-AtomicTest:PathToAtomicsFolder"="C:\AtomicRedTeam\atomics"}
 }
 
-Import-Module $PathToInvokeAtomicFolder
+Import-Module $PathToInvokeAtomicFolder -Force
+
+$PathToInvokeExecCmdFile = Join-Path -Path (Split-Path -Path $PathToInvokeAtomicFolder -Parent) -ChildPath "Private/Invoke-ExecuteCommand.ps1"
+
+$char1 = '$res = Invoke-Process -filename $execExe -Arguments $arguments -TimeoutSeconds $TimeoutSeconds'
+$char2 = '$res = Invoke-Process -filename execExe -Arguments arguments -TimeoutSeconds TimeoutSeconds -stderrFile "art-err.txt" -stdoutFile "art-out.txt"'
+# (Get-Content -Path $PathToInvokeExecCmdFile -Raw) -match [regex]::escape($char1)
+((Get-Content -Path $PathToInvokeExecCmdFile -Raw) -replace [regex]::escape($char1),$char2) | Set-Content -Path $PathToInvokeExecCmdFile
 
 $Tests = Import-CSV "./test.csv"
 
@@ -30,3 +38,8 @@ foreach ($test in $Tests) {
         Remove-Item $errFile, $outFile
     }
 }
+
+# Revert the code back to its original.
+# (Get-Content -Path $PathToInvokeExecCmdFile -Raw) -match [regex]::escape($char2)
+((Get-Content -Path $PathToInvokeExecCmdFile -Raw) -replace [regex]::escape($char2),$char1) | Set-Content -Path $PathToInvokeExecCmdFile
+# (Get-Content -Path $PathToInvokeExecCmdFile -Raw) -match [regex]::escape($char1)
