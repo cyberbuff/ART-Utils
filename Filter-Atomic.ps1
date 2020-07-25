@@ -66,7 +66,7 @@ function Filter-Atomic {
                 $atomic_dict["Executor"] = $exec_object['name']
                 $atomic_dict["Platform"] = $test['supported_platforms']
                 $atomic_dict["RequiresElevation"] = ($exec_object['elevation_required'] -eq $true)
-                $atomic_dict["RequireCleanup"] = ($exec_object['cleanup'] -ne $null)
+                $atomic_dict["RequireCleanup"] = ($exec_object['cleanup_command'] -ne $null)
                 $atomic_dict["RequiresDependencies"] = ([regex]::escape($test["dependencies"]) -ne $null)
                 
                 $condition = $true
