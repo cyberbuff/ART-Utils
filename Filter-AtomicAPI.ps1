@@ -9,9 +9,6 @@ function Filter-Atomic-API {
     (
         [Parameter(Mandatory = $false, Position = 0)]
         [String]$PathToAttackMatrix = $(if ($IsLinux -or $IsMacOS) { "~/Downloads/cti/enterprise-attack" } else { "C:\AtomicRedTeam\enterprise-attack\*\*.yaml" }),
-
-        [Parameter(Mandatory = $false, Position = 1)]
-        [String]$Keyword = $null,
         
         [Parameter(Mandatory = $false, Position =2)]
         [String]$Platform = $null,
@@ -31,7 +28,7 @@ function Filter-Atomic-API {
         $TechniquesDir = Join-Path $PathToAttackMatrix "attack-pattern"
         $RelationshipDir = Join-Path $PathToAttackMatrix "relationship"
         
-        $TechnqiuesFiles = Get-ChildItem $TechniquesDir -Recurse | % {Join-Path $TechniquesDir $_.Name}
+        $TechnqiuesFiles = Get-ChildItem -Path $TechniquesDir -Recurse | % {Join-Path $TechniquesDir $_.Name}
 
         if($Group){
             $Files = Filter-Files $GroupDir $Group
@@ -56,8 +53,16 @@ function Filter-Atomic-API {
             $TechnqiuesFiles = Filter-Files $TechnqiuesFiles $Pattern
         }
 
+        $AttackObjects = GetTechniquesFromAttackPattern $TechnqiuesFiles
 
-        $TechnqiuesFiles | % {Write-Host $(GetTechniquesFromAttackPattern $_)}
+        if($Platform){
+            $AttackObjects = $AttackObjects | Where {$_.x_mitre_platforms -contains $Platform -and (-not $_.revoked)}
+        }
+
+        foreach ($obj in $AttackObjects){
+            Write-Host $obj.external_references[0].external_id 
+            # $obj.name $obj.x_mitre_platforms $phases
+        }
 
     }
 }
@@ -67,7 +72,7 @@ Function Filter-Files($Dir, $Pattern){
 }
 
 Function GetTechniquesFromAttackPattern($AttackPatternFiles){
-    $objects = $AttackPatternFiles | % {$(Get-Content -Raw -Path $_ |  ConvertFrom-Json).objects[0]}    
+    $objects = $AttackPatternFiles | % {$(Get-Content -Raw -Path $_.Path |  ConvertFrom-Json).objects[0]}    
     return $objects
 }
 
