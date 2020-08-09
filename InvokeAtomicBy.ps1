@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Filters specified Atomic test(s)
+    Invoke Atomic Tests based on Groups, Softwares, Platforms and/or Tactics.
 #>
 
 class Relationship{
