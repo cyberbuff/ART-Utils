@@ -6,7 +6,7 @@
 .EXAMPLE Invoke Atomic Test for Credential Access tactics used by group admin@338.
     PS/> Invoke-AtomicTest-By -Group "admin@338" -Tactic "Credential Access"
 .EXAMPLE List all tests based on conditions.
-    PS/> Invoke-AtomicTest-By -Tactic "Discovery" -ShowDetails
+    PS/> Invoke-AtomicTest-By -Tactic "Discovery" -ShowDetailsBrief
 .EXAMPLE List all tactics, groups, etc.
     PS/> Invoke-AtomicTest-By -List "Tactic"
 .NOTES
