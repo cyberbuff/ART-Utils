@@ -39,7 +39,7 @@ class Software {
     }
 
     [Bool] Contains($QueryTerm){
-        $QueryTerm = "*{0}*" -f $QueryTerm
+        $QueryTerm = Get-Query-Term $QueryTerm
         return (($this.Id -like $QueryTerm) -or ($this.Name -like $QueryTerm) -or ($this.Aliases -like $QueryTerm))
     }
 }
@@ -59,7 +59,7 @@ class Tactic {
     }
 
     [Bool] Contains($QueryTerm){
-        $QueryTerm = "*{0}*" -f $QueryTerm
+        $QueryTerm = Get-Query-Term $QueryTerm
         return (($this.Id -like $QueryTerm) -or ($this.Name -like $QueryTerm) -or ($this.ShortName -like $QueryTerm))
     }
 }
@@ -80,7 +80,7 @@ class ThreatGroup {
     }
 
     [Bool] Contains($QueryTerm){
-        $QueryTerm = "*{0}*" -f $QueryTerm
+        $QueryTerm = Get-Query-Term $QueryTerm
         return (($this.Id -like $QueryTerm) -or ($this.Name -like $QueryTerm) -or ($this.Aliases -like $QueryTerm))
     }
 }
@@ -101,16 +101,16 @@ class AttackTechnique {
         $this.Guid = $json.id
         $this.Platforms = $json.x_mitre_platforms -join ", "
         $this.Phases = ($json.kill_chain_phases | % {$_.phase_name}) -join ", "
-        $this.revoked = $json.revoked
+        $this.Revoked = $json.revoked
     }
 
     [Bool] Contains($QueryTerm){
-        $QueryTerm = "*{0}*" -f $QueryTerm
+        $QueryTerm = Get-Query-Term $QueryTerm
         return (($this.Id -like $QueryTerm) -or ($this.Name -like $QueryTerm) -or ($this.Platforms -like $QueryTerm))
     }
 }
 
-Update-TypeData -TypeName AttackTechnique -DefaultDisplayPropertySet Id,Name,Phases,Platforms -Force
+Update-TypeData -TypeName AttackTechnique -DefaultDisplayPropertySet Id, Name, Phases, Platforms -Force
 
 function InvokeAtomicBy {
     [OutputType([PSCustomObject])]
@@ -118,22 +118,28 @@ function InvokeAtomicBy {
     param
     (
         [Parameter(Mandatory = $false, Position = 0)]
-        [String]$PathToAttackMatrix = $(if ($IsLinux -or $IsMacOS) { "~/Downloads/cti/enterprise-attack" } else { "C:\AtomicRedTeam\enterprise-attack\*\*.yaml" }),
+        [String]$PathToAttackMatrix = $(if ($IsLinux -or $IsMacOS) { "~/AtomicRedTeam/cti/enterprise-attack" } else { "C:\AtomicRedTeam\enterprise-attack" }),
         
-        [Parameter(Mandatory = $false, Position =1)]
-        [String]$List = $null,
+        [Parameter(Mandatory = $false, Position = 1)]
+        [String]$PathToInvokeAtomic = $(if ($IsLinux -or $IsMacOS) { "~/AtomicRedTeam/invoke-atomicredteam" } else { "C:\AtomicRedTeam\invoke-atomicredteam" }),
 
         [Parameter(Mandatory = $false, Position =2)]
-        [String]$Platform = $null,
+        [String]$List = $null,
 
         [Parameter(Mandatory = $false, Position =3)]
+        [String]$Platform = $null,
+
+        [Parameter(Mandatory = $false, Position =4)]
         [String]$Group = $null,
 
-        [Parameter(Mandatory = $false, Position =4)]
+        [Parameter(Mandatory = $false, Position =5)]
         [String]$Tactic = $null,
 
-        [Parameter(Mandatory = $false, Position =4)]
-        [String]$Software = $null
+        [Parameter(Mandatory = $false, Position =6)]
+        [String]$Software = $null,
+
+        [Parameter(Mandatory = $false, Position =5)]
+        [Switch]$ShowDetailsBrief = $null
     )
 
     end {
@@ -178,23 +184,46 @@ function InvokeAtomicBy {
                 }
             }
 
+            $AttackObjects = Map-Objects $TechnqiuesFiles "AttackTechnique"
+
             if($Tactic){
                 $Tactic = Map-Objects $TacticsDir "Tactic" | Where-Object {$_.Contains($Tactic)} | % {$_.ShortName}
-                $Pattern = '"phase_name": "{0}"' -f $Tactic
-                $TechnqiuesFiles = Filter-Files $TechnqiuesFiles $Pattern
+                $AttackObjects = $AttackObjects | Where-Object {$_.Phases -like $(Get-Query-Term $Tactic)}
             }
 
-            if($TechnqiuesFiles -ne $null){
-                $AttackObjects = Map-Objects $TechnqiuesFiles "AttackTechnique"
+            if(-not $Platform){
+                if ($IsLinux){
+                    $Platform = "linux"
+                }elseif($IsMacOS){
+                    $Platform = "macos"
+                }else{
+                    $Platform = "windows"
+                }
+            }
+
+            $AttackObjects = $AttackObjects | Where-Object {($_.Platforms -like $(Get-Query-Term $Platform)) -and (-not $_.Revoked)}
+            # -and ($this.Version -ge 2)
+            
+            if($ShowDetailsBrief){
+                $AttackObjects | Format-Table
             }else{
-                $AttackObjects = @()
-            }
+                $TestsNotFound = @()
+                foreach ($Attck in $AttackObjects){
+                    Import-Module (Join-Path $PathToInvokeAtomic "Invoke-AtomicRedTeam.psd1") -Force
+                    $File = "{0}/{0}.yaml" -f $Attck.Id
+                    if(Test-Path (Join-Path  (Split-Path $PathToInvokeAtomic -Parent) "atomics" $File)){
+                        Invoke-AtomicTest $Attck.Id
+                    }else{
+                        $TestsNotFound += $Attck
+                    }
+                }
 
-            if($Platform){
-                $AttackObjects = $AttackObjects | Where {$_.x_mitre_platforms -contains $Platform -and (-not $_.revoked)}
+                if($TestsNotFound){
+                    #TODO: Find a way to filter out the techniques whose subtechniques have run.
+                    Write-Host "The following tests are not executed because there are no atomics for those tests or the technique's subtechniques have run."
+                    $TestsNotFound | Format-Table
+                }
             }
-
-            $AttackObjects | Format-Table
             
         }
     }
@@ -210,4 +239,8 @@ Function Filter-Files($Dir, $Pattern){
 
 Function Get-Absolute-Dir($ParentDir, $FileName){
     return Join-Path $ParentDir ("{0}.json" -f $FileName)
+}
+
+Function Get-Query-Term($Term){
+    return "*{0}*" -f $Term
 }
