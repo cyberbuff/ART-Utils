@@ -1,6 +1,18 @@
 <#
 .SYNOPSIS
     Invoke Atomic Tests based on Groups, Softwares, Platforms and/or Tactics.
+.DESCRIPTION
+    Invoke Atomic Tests based on Groups, Softwares, Platforms and/or Tactics.  Optionally, you can specify if you want to list the details of the Atomic test(s) only.
+.EXAMPLE Invoke Atomic Test for Credential Access tactics used by group admin@338.
+    PS/> Invoke-AtomicTest-By -Group "admin@338" -Tactic "Credential Access"
+.EXAMPLE List all tests based on conditions.
+    PS/> Invoke-AtomicTest-By -Tactic "Discovery" -ShowDetails
+.EXAMPLE List all tactics, groups, etc.
+    PS/> Invoke-AtomicTest-By -List "Tactic"
+.NOTES
+    Instead of specifying the Group name, Group Aliases names can also be used to invoke atomic tests.
+    If platform parameters are not passed, the tests would run for the current system's operating system.
+    You will get a list of tests that are not run if the atomics are unavailable.
 #>
 
 class Relationship{
@@ -112,7 +124,7 @@ class AttackTechnique {
 
 Update-TypeData -TypeName AttackTechnique -DefaultDisplayPropertySet Id, Name, Phases, Platforms -Force
 
-function InvokeAtomicBy {
+function Invoke-AtomicTest-By {
     [OutputType([PSCustomObject])]
     [CmdletBinding()]
     param
@@ -190,6 +202,8 @@ function InvokeAtomicBy {
                 $Tactic = Map-Objects $TacticsDir "Tactic" | Where-Object {$_.Contains($Tactic)} | % {$_.ShortName}
                 $AttackObjects = $AttackObjects | Where-Object {$_.Phases -like $(Get-Query-Term $Tactic)}
             }
+
+            #If no platforms are provided, the tests would run for current system platform.
 
             if(-not $Platform){
                 if ($IsLinux){
