@@ -30,7 +30,7 @@ class Relationship{
         $this.RelType = $json.relationship_type
     }
 
-    [Bool] IsTargetRefAttackPattern($SourceRef){ 
+    [Bool] IsTargetRefAttackPattern($SourceRef){
         return (($this.SourceRef -eq $SourceRef) -and ($this.TargetRef -match "attack-pattern--*"))
     }
 }
@@ -108,7 +108,7 @@ class AttackTechnique {
     [bool]$Revoked
 
     AttackTechnique([PSCustomObject]$json){
-        $this.Id = $json.external_references[0].external_id 
+        $this.Id = $json.external_references[0].external_id
         $this.Name = $json.name
         $this.Guid = $json.id
         $this.Platforms = $json.x_mitre_platforms -join ", "
@@ -130,8 +130,8 @@ function Invoke-AtomicTest-By {
     param
     (
         [Parameter(Mandatory = $false, Position = 0)]
-        [String]$PathToAttackMatrix = $(if ($IsLinux -or $IsMacOS) { "~/AtomicRedTeam/cti/enterprise-attack" } else { "C:\AtomicRedTeam\enterprise-attack" }),
-        
+        [String]$PathToAttackMatrix = $(if ($IsLinux -or $IsMacOS) { $Env:HOME + "/AtomicRedTeam/cti/enterprise-attack" } else { $env:HOMEDRIVE + "\AtomicRedTeam\cti\enterprise-attack" }),
+
         [Parameter(Mandatory = $false, Position = 1)]
         [String]$PathToInvokeAtomic = $(if ($IsLinux -or $IsMacOS) { "~/AtomicRedTeam/invoke-atomicredteam" } else { "C:\AtomicRedTeam\invoke-atomicredteam" }),
 
@@ -160,6 +160,11 @@ function Invoke-AtomicTest-By {
         $RelationshipDir = Join-Path $PathToAttackMatrix "relationship"
         $TacticsDir = Join-Path $PathToAttackMatrix "x-mitre-tactic"
         $SoftwareDir = Join-Path $PathToAttackMatrix "malware"
+
+        if(-not (Test-Path $PathToAttackMatrix)){
+            Import-Module ./Install-CTI.ps1 -Force
+            Install-CTIFolder -Force
+        }
 
         if($List){
             if($List -eq "Group"){
@@ -217,7 +222,7 @@ function Invoke-AtomicTest-By {
 
             $AttackObjects = $AttackObjects | Where-Object {($_.Platforms -like $(Get-Query-Term $Platform)) -and (-not $_.Revoked)}
             # -and ($this.Version -ge 2)
-            
+
             if($ShowDetailsBrief){
                 $AttackObjects | Format-Table
             }else{
@@ -238,7 +243,7 @@ function Invoke-AtomicTest-By {
                     $TestsNotFound | Format-Table
                 }
             }
-            
+
         }
     }
 }
@@ -248,7 +253,7 @@ Function Map-Objects($Dir, $ObjectType){
 }
 
 Function Filter-Files($Dir, $Pattern){
-    return (Get-ChildItem -Recurse -LiteralPath $Dir | Select-String -Pattern $Pattern  | Select -Unique Path | % {$_.Path } ) 
+    return (Get-ChildItem -Recurse -LiteralPath $Dir | Select-String -Pattern $Pattern  | Select -Unique Path | % {$_.Path } )
 }
 
 Function Get-Absolute-Dir($ParentDir, $FileName){
