@@ -129,12 +129,9 @@ function Invoke-AtomicTest-By {
     [CmdletBinding()]
     param
     (
-        [Parameter(Mandatory = $false, Position = 0)]
-        [String]$PathToAttackMatrix = $(if ($IsLinux -or $IsMacOS) { $Env:HOME + "/AtomicRedTeam/cti/enterprise-attack" } else { $env:HOMEDRIVE + "\AtomicRedTeam\cti\enterprise-attack" }),
-
         [Parameter(Mandatory = $false, Position = 1)]
-        [String]$PathToInvokeAtomic = $(if ($IsLinux -or $IsMacOS) { "~/AtomicRedTeam/invoke-atomicredteam" } else { "C:\AtomicRedTeam\invoke-atomicredteam" }),
-
+        [String]$PathToArt = $( if ($IsLinux -or $IsMacOS) { $Env:HOME + "/AtomicRedTeam" } else { $env:HOMEDRIVE + "\AtomicRedTeam" }),
+        
         [Parameter(Mandatory = $false, Position =2)]
         [String]$List = $null,
 
@@ -155,6 +152,8 @@ function Invoke-AtomicTest-By {
     )
 
     end {
+        $PathToAttackMatrix = Join-Path $PathToArt "cti/enterprise-attack"
+        $PathToInvokeAtomic = Join-Path $PathToArt "invoke-atomicredteam"
         $GroupDir = Join-Path $PathToAttackMatrix "intrusion-set"
         $TechniquesDir = Join-Path $PathToAttackMatrix "attack-pattern"
         $RelationshipDir = Join-Path $PathToAttackMatrix "relationship"
@@ -229,8 +228,8 @@ function Invoke-AtomicTest-By {
                 $TestsNotFound = @()
                 foreach ($Attck in $AttackObjects){
                     Import-Module (Join-Path $PathToInvokeAtomic "Invoke-AtomicRedTeam.psd1") -Force
-                    $File = "{0}/{0}.yaml" -f $Attck.Id
-                    if(Test-Path (Join-Path  (Split-Path $PathToInvokeAtomic -Parent) "atomics" $File)){
+                    $File = "$PathToArt/atomics/{0}/{0}.yaml" -f $Attck.Id
+                    if(Test-Path $File){
                         Invoke-AtomicTest $Attck.Id
                     }else{
                         $TestsNotFound += $Attck
@@ -249,7 +248,11 @@ function Invoke-AtomicTest-By {
 }
 
 Function Map-Objects($Dir, $ObjectType){
-    return Get-ChildItem -Recurse -LiteralPath $Dir | % { New-Object -TypeName $ObjectType -ArgumentList $(Get-Content -Raw -Path $_ |  ConvertFrom-Json).objects[0] }
+    return Get-ChildItem -Recurse -LiteralPath $Dir | % { New-Object -TypeName $ObjectType -ArgumentList $(Get-Content -Raw -Path $_.FullName |  ConvertFrom-Json).objects[0] }
+}
+
+Function Map-Objects-From-Files($Dir, $ObjectType){
+    return Get-ChildItem -LiteralPath $Dir | % { New-Object -TypeName $ObjectType -ArgumentList $(Get-Content -Raw -Path $(Join-Path $Dir $_) |  ConvertFrom-Json).objects[0] }
 }
 
 Function Filter-Files($Dir, $Pattern){
