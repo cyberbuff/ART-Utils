@@ -1,3 +1,7 @@
+# Atomic Red Team Jupyter Files
+
+This folder contains Jupyter notebooks to get started with Atomic Red Team. 
+
 Prerequisites: 
 - jupyter
 - dotnet-interactive
